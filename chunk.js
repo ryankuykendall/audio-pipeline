@@ -24,7 +24,24 @@ var filename = process.argv[2];
 var extension = path.extname(filename);
 var filenameRoot = filename.split(extension).shift().split('/').pop();
 var cwd = process.cwd();
-console.log("Processing", cwd, executable.split(cwd).pop(), filename, filenameRoot);
+console.log("Processing", filename);
+
+// TODO: Move this out of here...
+// console.log("Chunk start times =", chunkStartTimes.join(','));
+var outputPathItems = ['output', filenameRoot, 'chunks'];
+var outputPath = outputPathItems.join('/');
+
+for (var i = 0 ; i < outputPathItems.length ; i++) {
+  var pathToTest = outputPathItems.slice(0, i + 1).join('/');
+  // console.log("pathToTest", pathToTest, filenameRoot);
+  if (!fs.existsSync(pathToTest)) {
+    fs.mkdirSync(pathToTest);
+  }
+}
+
+var transcodeDirectoryPathItems = outputPathItems.slice(0, -1).concat(['transcoding']);
+var transcodeDirectoryPath = transcodeDirectoryPathItems.join('/');
+fs.mkdirSync(transcodeDirectoryPath);
 
 var probeCommand = [
   'ffprobe -i', filename,
@@ -49,7 +66,8 @@ var probeProcess = exec(probeCommand, (error, stdout, stderr) => {
 var transcode = function(duration) {
   // TODO: Ahem...why didn't you just do this conversion at the
   //   beginning??? So silly!
-  var flacFilename = filename.replace(extension, '.flac');
+  var flacFilename = [transcodeDirectoryPath, filenameRoot].join('/');
+  flacFilename += '.flac';
   var flacCommand = [
     'ffmpeg -i', filename,
     flacFilename
@@ -74,19 +92,6 @@ var chunk = function(filename, duration) {
   while (currentChunkStartTime < duration) {
     chunkStartTimes.push(currentChunkStartTime);
     currentChunkStartTime += chunkSize;
-  }
-
-  // TODO: Move this out of here...
-  // console.log("Chunk start times =", chunkStartTimes.join(','));
-  var outputPathItems = ['output', filenameRoot];
-  var outputPath = outputPathItems.join('/');
-
-  for (var i = 0 ; i < outputPathItems.length ; i++) {
-    var pathToTest = outputPathItems.slice(0, i + 1).join('/');
-    // console.log("pathToTest", pathToTest, filenameRoot);
-    if (!fs.existsSync(pathToTest)) {
-      fs.mkdirSync(pathToTest);
-    }
   }
 
   var chunkCommand = [
@@ -140,6 +145,8 @@ var chunk = function(filename, duration) {
       });
     }
   });
+
+  console.log("\nNext step: $ ./transcribe.js", outputPath, "\n");
 }
 
 var hoursMinutesSecondsFormatter = function(seconds) {
