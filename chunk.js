@@ -36,7 +36,7 @@ var probeCommand = [
 var probeProcess = exec(probeCommand, (error, stdout, stderr) => {
   var duration = parseFloat(stdout);
   if (duration) {
-    chunk(duration);
+    transcode(duration);
   } else {
     // console.log(`stdout: ${stdout}`);
     // console.log(`stderr: ${stderr}`);
@@ -46,7 +46,27 @@ var probeProcess = exec(probeCommand, (error, stdout, stderr) => {
   }
 });
 
-var chunk = function(duration) {
+var transcode = function(duration) {
+  // TODO: Ahem...why didn't you just do this conversion at the
+  //   beginning??? So silly!
+  var flacFilename = filename.replace(extension, '.flac');
+  var flacCommand = [
+    'ffmpeg -i', filename,
+    flacFilename
+  ].join(' ')
+
+  var flacProcess = exec(flacCommand, (error, stdout, stderr) => {
+    // console.log(`stdout: ${stdout}`);
+    // console.log(`stderr: ${stderr}`);
+    if (error !== null) {
+        console.log(`exec error: ${error}`);
+    } else {
+      chunk(flacFilename, duration);
+    }
+  });
+}
+
+var chunk = function(filename, duration) {
   var chunkSize = 10;
   var chunkStartTimes = [];
   var currentChunkStartTime = 0;
@@ -56,6 +76,7 @@ var chunk = function(duration) {
     currentChunkStartTime += chunkSize;
   }
 
+  // TODO: Move this out of here...
   // console.log("Chunk start times =", chunkStartTimes.join(','));
   var outputPathItems = ['output', filenameRoot];
   var outputPath = outputPathItems.join('/');
@@ -75,7 +96,7 @@ var chunk = function(duration) {
     '-c copy',
     // NOTE: Can we do the conversion to flac and segment at the same time?
     //   apparently just changing the file extension is not sufficient :(
-    '-map 0', [outputPath, '%05d0.mp3'].join('/'),
+    '-map 0', [outputPath, '%05d0.flac'].join('/'),
     // NOTE: Segment list is not outputting for some reason...
     '-segment_list', [outputPath, 'segments.txt'].join('/')
   ].join(' ')
@@ -115,21 +136,6 @@ var chunk = function(duration) {
           newFile += extension;
           // console.log('Renaming file...', item, newFile);
           fs.renameSync(file, newFile);
-
-          // TODO: Ahem...why didn't you just do this conversion at the
-          //   beginning??? So silly!
-          var flacFilename = newFile.replace(extension, '.flac');
-          var flacCommand = [
-            'ffmpeg -i', newFile,
-            flacFilename
-          ].join(' ')
-          var flacProcess = exec(flacCommand, (error, stdout, stderr) => {
-            // console.log(`stdout: ${stdout}`);
-            // console.log(`stderr: ${stderr}`);
-            if (error !== null) {
-                console.log(`exec error: ${error}`);
-            }
-          });
         });
       });
     }
