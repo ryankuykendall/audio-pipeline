@@ -1,7 +1,12 @@
 ## Getting Started
 
+NOTE: You will want the latest version of NodeJS (v6.2.1) and NPM. 
+
 Install ffmpeg (I used brew)
 $ brew install ffmpeg
+
+From the root project directory
+$ npm install
 
 ## Commands I have run
 $ ffmpeg -i radiolab061016_moreperfect_episode2.mp3 -f segment -segment_times 10,20 -c copy -map 0 output/02%d.mp3
