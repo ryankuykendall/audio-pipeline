@@ -43,6 +43,8 @@ var transcodeDirectoryPathItems = outputPathItems.slice(0, -1).concat(['transcod
 var transcodeDirectoryPath = transcodeDirectoryPathItems.join('/');
 fs.mkdirSync(transcodeDirectoryPath);
 
+// TODO: Move Probing and Transcoding out into a separate step so that it is
+//   easier to handle multiple audio (and eventually) video types.
 var probeCommand = [
   'ffprobe -i', filename,
   '-show_entries format=duration',
@@ -63,9 +65,8 @@ var probeProcess = exec(probeCommand, (error, stdout, stderr) => {
   }
 });
 
+// TODO: Move this into a separate script/step
 var transcode = function(duration) {
-  // TODO: Ahem...why didn't you just do this conversion at the
-  //   beginning??? So silly!
   var flacFilename = [transcodeDirectoryPath, filenameRoot].join('/');
   flacFilename += '.flac';
   var flacCommand = [
