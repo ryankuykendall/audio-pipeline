@@ -32,17 +32,17 @@ fs.readdir(chunkDirectoryPath, function (err, list) {
     var responseFilePath = [responseDirectoryPath, responseFilename].join('/');
     var timeRangeItems = fileRoot.split('-');
 
-    console.log("Transcribing", item, b64contents, "\n");
+    console.log("Transcribing", item, b64contents, b64contents.length, "\n");
     // Call the API Here
 
     console.log("Saving", responseFilePath);
     fs.writeFileSync(responseFilePath, JSON.stringify({
       "start": timeRangeItems[0],
       "end": timeRangeItems[1],
-      "data": {}
+      "data": {"text": "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat."}
     }));
 
-    sleep.sleep(1);
+    sleep.usleep(750000);
   })
 
   // TODO: Iterate over each of the flac files in directory and make a call to

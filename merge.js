@@ -2,6 +2,7 @@
 
 "use strict";
 
+var csv = require('fast-csv');
 var exec = require('child_process').exec;
 var fs = require('fs');
 var path = require('path');
@@ -13,9 +14,13 @@ var responseDirectoryPathItems = responseDirectoryPath.split('/');
 var mergeDirectoryPathItems = responseDirectoryPathItems.slice(0, -1).concat(['merge']);
 var mergeDirectoryPath = mergeDirectoryPathItems.join('/');
 
-fs.mkdirSync(mergeDirectoryPath);
+if (!fs.existsSync(mergeDirectoryPath)) {
+  fs.mkdirSync(mergeDirectoryPath);
+}
 
-fs.readdir(chunkDirectoryPath, function (err, list) {
+var responses = [];
+
+fs.readdir(responseDirectoryPath, function (err, list) {
   // Return the error if something went wrong
   if (err)
     return action(err);
@@ -23,34 +28,30 @@ fs.readdir(chunkDirectoryPath, function (err, list) {
   // For every file in the list
   list.forEach(function (item) {
     // Full path of that file
-    var file = chunkDirectoryPath + "/" + item;
-    var extension = path.extname(item);
-    var fileRoot = item.split('.').shift();
-    var b64contents = fs.readFileSync(file).toString('base64');
-    var responseFilename = [fileRoot, 'json'].join('.');
-    var responseFilePath = [responseDirectoryPath, responseFilename].join('/');
-    var timeRangeItems = fileRoot.split('-');
-
-    console.log("Transcribing", item);
-    // Call the API Here
-
-    console.log("Saving", responseFilePath);
-    fs.writeFileSync(responseFilePath, JSON.stringify({
-      "start": timeRangeItems[0],
-      "end": timeRangeItems[1],
-      "data": {}
-    }));
-
-    sleep.sleep(1);
+    var file = responseDirectoryPath + "/" + item;
+    var response = JSON.parse(fs.readFileSync(file));
+    responses.push(response);
   })
 
-  // TODO: Iterate over each of the flac files in directory and make a call to
-  //  the API by base64 encoding the flac files and sending them off.
-  //
-  //  Then store the resulting responses in the response directory.
+  responses = responses.sort(function (x, y) {
+    return x.start < y.start ? -1 : 1;
+  });
 
-  // Last thing to do!!!
-  console.log("\nNext step: $ ./merge.js", responseDirectoryPath, "\n");
+  // console.log("Merged responses", JSON.stringify(responses, null, 2));
+  var mergeFilename = [mergeDirectoryPath, 'index.json'].join('/');
+  fs.writeFileSync(mergeFilename, JSON.stringify(responses, null, 2));
+  console.log("Generating JSON", mergeFilename);
+
+  var csvData = responses.map((item, index) => {
+    return [item.start, item.end, item.data.text];
+  });
+  csvData.unshift(['Start time', 'End time', 'Transcription']);
+  var csvFilename = [mergeDirectoryPath, 'index.csv'].join('/');
+
+  csv.writeToPath(csvFilename, csvData);
+  console.log("Generating CSV", csvFilename);
+
+  console.log("\nNext step: Generate an HTML View\n");
 });
 
 // Last thing to do!!! Generate HTML View!!! Celebrate!!!
